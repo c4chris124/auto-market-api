@@ -1,0 +1,497 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BodyType {
+  SEDAN
+  SUV
+  TRUCK
+  COUPE
+  CONVERTIBLE
+  HATCHBACK
+  WAGON
+  VAN
+}
+
+enum Transmission {
+  AUTOMATIC
+  MANUAL
+  CVT
+  DCT
+  SEMI_AUTOMATIC
+}
+
+enum FuelType {
+  GASOLINE
+  DIESEL
+  ELECTRIC
+  HYBRID
+  PLUG_IN_HYBRID
+  HYDROGEN
+}
+
+enum Drivetrain {
+  FWD
+  RWD
+  AWD
+  FOUR_WD
+}
+
+enum VehicleStatus {
+  DRAFT
+  AVAILABLE
+  RESERVED
+  SOLD
+  INACTIVE
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  THREE_SIXTY
+}
+
+enum LeadType {
+  AVAILABILITY
+  ADVISOR
+}
+
+enum LeadStatus {
+  NEW
+  IN_PROGRESS
+  CLOSED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum ServiceStatus {
+  REQUESTED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum PolicyType {
+  RETURN
+  WARRANTY
+  CERTIFICATION
+}
+
+enum NotificationType {
+  SYSTEM
+  PROMOTION
+  VEHICLE
+  ORDER
+  SERVICE
+}
+
+enum TradeInStatus {
+  REQUESTED
+  IN_REVIEW
+  OFFERED
+  ACCEPTED
+  REJECTED
+  CLOSED
+}
+
+enum FinancePrequalStatus {
+  SUBMITTED
+  APPROVED
+  DECLINED
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  passwordHash String
+  firstName String?
+  lastName  String?
+  phone     String?
+  avatarUrl String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notifications     Notification[]
+  favorites         Favorite[]
+  orders            Order[]
+  leads             Lead[]
+  tradeInRequests   TradeInRequest[]
+  serviceAppointments ServiceAppointment[]
+  financePrequals   FinancePrequalification[]
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  type      NotificationType @default(SYSTEM)
+  title     String
+  message   String   @db.Text
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+model Favorite {
+  userId    String   @db.Uuid
+  vehicleId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, vehicleId])
+  @@index([vehicleId])
+}
+
+model Make {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  models   Model[]
+  vehicles Vehicle[]
+}
+
+model Model {
+  id        String   @id @default(uuid()) @db.Uuid
+  makeId    String   @db.Uuid
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  make     Make     @relation(fields: [makeId], references: [id], onDelete: Cascade)
+  vehicles Vehicle[]
+
+  @@unique([makeId, name])
+  @@index([makeId])
+}
+
+model Vehicle {
+  id            String   @id @default(uuid()) @db.Uuid
+  vin           String?  @unique
+  stockNumber   String?
+  makeId        String   @db.Uuid
+  modelId       String   @db.Uuid
+  year          Int
+  trim          String?
+  bodyType      BodyType
+  transmission  Transmission
+  fuelType      FuelType
+  drivetrain    Drivetrain
+  mileage       Int
+  doors         Int?
+  seats         Int?
+  exteriorColor String?
+  interiorColor String?
+  description   String?  @db.Text
+  price         Decimal  @db.Decimal(12, 2)
+  msrp          Decimal? @db.Decimal(12, 2)
+  currency      String   @default("USD")
+  status        VehicleStatus @default(AVAILABLE)
+  featured      Boolean  @default(false)
+  certified     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  make        Make           @relation(fields: [makeId], references: [id])
+  model       Model          @relation(fields: [modelId], references: [id])
+  media       VehicleMedia[]
+  features    VehicleFeature[]
+  specs       VehicleSpec[]
+  history     VehicleHistory?
+  inspection  VehicleInspection?
+  reviews     VehicleReview[]
+  pricing     VehiclePricing?
+  marketPrice MarketPrice?
+  favorites   Favorite[]
+  leads       Lead[]
+  orders      Order[]
+  serviceAppointments ServiceAppointment[]
+
+  @@index([makeId, modelId])
+  @@index([status, featured, certified])
+  @@index([year, price])
+}
+
+model VehicleMedia {
+  id        String   @id @default(uuid()) @db.Uuid
+  vehicleId String   @db.Uuid
+  type      MediaType @default(IMAGE)
+  url       String
+  altText   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, sortOrder])
+}
+
+model VehicleFeature {
+  id        String   @id @default(uuid()) @db.Uuid
+  vehicleId String   @db.Uuid
+  label     String
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+model VehicleSpec {
+  id        String   @id @default(uuid()) @db.Uuid
+  vehicleId String   @db.Uuid
+  key       String
+  value     String
+  unit      String?
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+model VehicleHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  vehicleId String   @unique @db.Uuid
+  ownersCount Int?
+  accidentsCount Int?
+  serviceRecordsAvailable Boolean @default(false)
+  reportUrl String?
+  lastReportedAt DateTime?
+  notes     String? @db.Text
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model VehicleInspection {
+  id        String   @id @default(uuid()) @db.Uuid
+  vehicleId String   @unique @db.Uuid
+  inspectedAt DateTime?
+  passed    Boolean  @default(false)
+  score     Int?
+  notes     String?  @db.Text
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model VehicleReview {
+  id        String   @id @default(uuid()) @db.Uuid
+  vehicleId String   @db.Uuid
+  rating    Int
+  title     String?
+  comment   String?  @db.Text
+  authorName String?
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+model VehiclePricing {
+  id             String   @id @default(uuid()) @db.Uuid
+  vehicleId      String   @unique @db.Uuid
+  listPrice      Decimal  @db.Decimal(12, 2)
+  discountAmount Decimal? @db.Decimal(12, 2)
+  discountPercent Decimal? @db.Decimal(5, 2)
+  noHaggle       Boolean  @default(false)
+  validFrom      DateTime?
+  validTo        DateTime?
+  updatedAt      DateTime @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model MarketPrice {
+  id         String   @id @default(uuid()) @db.Uuid
+  vehicleId  String   @unique @db.Uuid
+  average    Decimal  @db.Decimal(12, 2)
+  low        Decimal? @db.Decimal(12, 2)
+  high       Decimal? @db.Decimal(12, 2)
+  sampleSize Int?
+  updatedAt  DateTime @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model Lead {
+  id        String   @id @default(uuid()) @db.Uuid
+  type      LeadType
+  status    LeadStatus @default(NEW)
+  userId    String?  @db.Uuid
+  vehicleId String?  @db.Uuid
+  name      String
+  email     String
+  phone     String?
+  message   String?  @db.Text
+  preferredContact String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  @@index([type, status])
+  @@index([vehicleId])
+}
+
+model Order {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  vehicleId  String   @db.Uuid
+  status     OrderStatus @default(PENDING)
+  totalAmount Decimal @db.Decimal(12, 2)
+  currency   String   @default("USD")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  cancelledAt DateTime?
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([vehicleId])
+}
+
+model TradeInRequest {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  status    TradeInStatus @default(REQUESTED)
+  make      String
+  model     String
+  year      Int
+  mileage   Int
+  vin       String?
+  condition String?
+  notes     String?  @db.Text
+  estimatedValue Decimal? @db.Decimal(12, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model ServiceLocation {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  address1  String
+  address2  String?
+  city      String
+  state     String
+  postalCode String
+  country   String   @default("US")
+  phone     String?
+  latitude  Decimal? @db.Decimal(9, 6)
+  longitude Decimal? @db.Decimal(9, 6)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments ServiceAppointment[]
+}
+
+model ServiceAppointment {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  serviceLocationId String @db.Uuid
+  vehicleId String?  @db.Uuid
+  scheduledAt DateTime
+  status    ServiceStatus @default(REQUESTED)
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  serviceLocation ServiceLocation @relation(fields: [serviceLocationId], references: [id], onDelete: Restrict)
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  @@index([serviceLocationId, scheduledAt])
+}
+
+model FinanceConfig {
+  id        String   @id @default(uuid()) @db.Uuid
+  termMonths Int
+  apr       Decimal  @db.Decimal(5, 3)
+  minCreditScore Int?
+  maxCreditScore Int?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+}
+
+model FinancePrequalification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  status    FinancePrequalStatus @default(SUBMITTED)
+  creditScore Int?
+  downPayment Decimal? @db.Decimal(12, 2)
+  loanAmount Decimal? @db.Decimal(12, 2)
+  termMonths Int?
+  apr       Decimal? @db.Decimal(5, 3)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Achievement {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  label     String
+  value     Int
+  suffix    String?
+  updatedAt DateTime @updatedAt
+}
+
+model Testimonial {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  title     String?
+  rating    Int
+  message   String  @db.Text
+  avatarUrl String?
+  featured  Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([featured])
+}
+
+model Faq {
+  id        String   @id @default(uuid()) @db.Uuid
+  question  String
+  answer    String   @db.Text
+  sortOrder Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}
+
+model Policy {
+  id        String   @id @default(uuid()) @db.Uuid
+  type      PolicyType @unique
+  title     String
+  content   String   @db.Text
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,86 @@
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
+import {
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsStrongPassword,
+  IsUrl,
+  MaxLength,
+} from 'class-validator';
+
+export class CreateUserDto {
+  @ApiProperty({ example: 'user@automarket.com' })
+  @IsEmail()
+  public readonly email: string;
+
+  @ApiProperty({ example: 'StrongPassword123!' })
+  @IsStrongPassword({
+    minLength: 5,
+    minNumbers: 1,
+    minSymbols: 1,
+    minUppercase: 1,
+    minLowercase: 1,
+  })
+  public readonly password: string;
+
+  @ApiPropertyOptional({ example: 'Jane' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  public readonly firstName?: string;
+
+  @ApiPropertyOptional({ example: 'Doe' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  public readonly lastName?: string;
+
+  @ApiPropertyOptional({ example: '+305 5555 1234' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  public readonly phone?: string;
+
+  @ApiPropertyOptional({ example: 'https://cdn.example.com/avatar.png' })
+  @IsOptional()
+  @IsUrl()
+  public readonly avatarUrl?: string;
+
+  @ApiPropertyOptional({ enum: Role, example: Role.USER })
+  @IsOptional()
+  @IsEnum(Role)
+  public readonly role?: Role;
+}
+
+export class UpdateUserDto extends PartialType(CreateUserDto) {}
+
+export class UserResponseDto {
+  @ApiProperty({ example: '9f3f5f8a-70a7-4c6b-8f51-4d5e2a2c6b18' })
+  public readonly id: string;
+
+  @ApiProperty({ example: 'user@automarket.com' })
+  public readonly email: string;
+
+  @ApiPropertyOptional({ example: 'Jane' })
+  public readonly firstName?: string | null;
+
+  @ApiPropertyOptional({ example: 'Doe' })
+  public readonly lastName?: string | null;
+
+  @ApiPropertyOptional({ example: '+1 305 555 1234' })
+  public readonly phone?: string | null;
+
+  @ApiPropertyOptional({ example: 'https://cdn.example.com/avatar.png' })
+  public readonly avatarUrl?: string | null;
+
+  @ApiProperty({ enum: Role, example: Role.USER })
+  public readonly role: Role;
+
+  @ApiProperty()
+  public readonly createdAt: Date;
+
+  @ApiProperty()
+  public readonly updatedAt: Date;
+}
