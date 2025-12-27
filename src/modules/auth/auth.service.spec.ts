@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { InternalServerErrorException } from '@nestjs/common';
+
+import * as bcrypt from 'bcrypt';
+import { Request } from 'express';
+
 import { AuthService } from './auth.service';
 import { UserService } from '@modules/user/user.service';
-import { InternalServerErrorException } from '@nestjs/common';
-import { Request } from 'express';
-import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
 

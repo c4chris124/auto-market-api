@@ -9,8 +9,9 @@ import {
 } from '@nestjs/common';
 
 import type { Request } from 'express';
-import { AuthService } from './auth.service';
+
 import { AuthDto } from './dto/auth.dto';
+import { AuthService } from './auth.service';
 
 @ApiTags('Auth')
 @Controller('auth')
