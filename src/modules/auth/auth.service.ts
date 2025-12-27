@@ -1,12 +1,18 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 import * as bcrypt from 'bcrypt';
 import { Request } from 'express';
 
-import { User } from '@prisma/client';
+import { AuthProvider, User } from '@prisma/client';
 
-import { AuthDto } from './dto/auth.dto';
 import { UserService } from '@modules/user/user.service';
+import { SessionUser } from '@common/types/session-user.type';
+import { AuthDto, SignUpDto, SocialSignInDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -15,16 +21,14 @@ export class AuthService {
   public async login(req: Request, { email, password }: AuthDto) {
     const user = await this.validateUser(email, password);
     if (!user) {
-      throw new InternalServerErrorException('Invalid credentials');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    //assign user id to session from request
-    req.session.user_id = user.id;
-    delete (user as Partial<User>).passwordHash;
+    const sessionUser = this.toSessionUser(user);
+    req.session.user = sessionUser;
 
-    //save session
-    await this.saveSession(req, user);
-    return user;
+    await this.saveSession(req);
+    return sessionUser;
   }
 
   public async logOut(req: Request) {
@@ -41,9 +45,65 @@ export class AuthService {
     });
   }
 
+  public async signUp(req: Request, dto: SignUpDto) {
+    const existingUser = await this.userService.findUserByEmail(dto.email);
+    if (existingUser) {
+      throw new ConflictException('Email already in use');
+    }
+
+    const user = await this.userService.createUser({
+      email: dto.email,
+      password: dto.password,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      phone: dto.phone,
+      avatarUrl: dto.avatarUrl,
+    });
+
+    const sessionUser = this.toSessionUser(user);
+    req.session.user = sessionUser;
+    await this.saveSession(req);
+    return sessionUser;
+  }
+
+  public async socialSignIn(req: Request, dto: SocialSignInDto) {
+    if (
+      ![AuthProvider.GOOGLE, AuthProvider.APPLE, AuthProvider.LOCAL].includes(
+        dto.provider,
+      )
+    ) {
+      throw new UnauthorizedException('Unsupported provider');
+    }
+
+    const existingByProvider = await this.userService.findUserByProvider(
+      dto.provider,
+      dto.providerId,
+    );
+
+    const user = existingByProvider
+      ? existingByProvider
+      : await this.userService.createUserFromOAuth({
+          email: dto.email,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          avatarUrl: dto.avatarUrl,
+          provider: dto.provider,
+          providerId: dto.providerId,
+        });
+
+    const sessionUser = this.toSessionUser(user);
+    req.session.user = sessionUser;
+    await this.saveSession(req);
+    return sessionUser;
+  }
+
   private async validateUser(email: string, password: string) {
     const user = await this.userService.findUserByEmailForAuth(email);
     if (!user) {
+      return null;
+    }
+
+    if (!user.passwordHash) {
       return null;
     }
 
@@ -55,13 +115,23 @@ export class AuthService {
     return user;
   }
 
-  private async saveSession(req: Request, user: Omit<User, 'passwordHash'>) {
+  private toSessionUser(
+    user: Pick<User, 'id' | 'email' | 'role'>,
+  ): SessionUser {
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
+  }
+
+  private async saveSession(req: Request) {
     return new Promise((resolve, reject) => {
       req.session.save((err) => {
         if (err) {
           reject(new InternalServerErrorException('Failed to save session.'));
         } else {
-          resolve({ user });
+          resolve({ ok: true });
         }
       });
     });

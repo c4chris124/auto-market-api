@@ -15,6 +15,7 @@ import {
 } from '@nestjs/swagger';
 
 import { Role } from '@prisma/client';
+import { SessionAuthGuard } from '@guards/session-auth.guard';
 import { RolesGuard } from '@guards/roles.guard';
 import { Roles } from '@decorators/roles.decorator';
 
@@ -28,8 +29,8 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  // @Roles(Role.ADMIN)
-  // @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @UseGuards(SessionAuthGuard, RolesGuard)
   @ApiCreatedResponse({ type: UserResponseDto })
   public async createUser(
     @Body() dto: CreateUserDto,
@@ -39,7 +40,7 @@ export class UserController {
 
   @Patch(':id')
   @Roles(Role.ADMIN)
-  @UseGuards(RolesGuard)
+  @UseGuards(SessionAuthGuard, RolesGuard)
   @ApiOkResponse({ type: UserResponseDto })
   public async updateUser(
     @Param('id', new ParseUUIDPipe()) id: string,

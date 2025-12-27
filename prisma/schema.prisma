@@ -12,6 +12,12 @@ enum Role {
   ADMIN
 }
 
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  APPLE
+}
+
 enum BodyType {
   SEDAN
   SUV
@@ -118,12 +124,14 @@ enum FinancePrequalStatus {
 model User {
   id        String   @id @default(uuid()) @db.Uuid
   email     String   @unique
-  passwordHash String
+  passwordHash String?
   firstName String?
   lastName  String?
   phone     String?
   avatarUrl String?
   role      Role     @default(USER)
+  authProvider   AuthProvider @default(LOCAL)
+  authProviderId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -134,6 +142,9 @@ model User {
   tradeInRequests   TradeInRequest[]
   serviceAppointments ServiceAppointment[]
   financePrequals   FinancePrequalification[]
+
+  @@unique([authProvider, authProviderId])
+  @@index([authProvider, authProviderId])
 }
 
 model Notification {
