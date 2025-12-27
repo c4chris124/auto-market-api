@@ -1,7 +1,9 @@
-import { User } from '@prisma/client';
-
-declare module 'express' {
-  export interface Request {
-    user?: User;
+declare global {
+  namespace Express {
+    interface Request {
+      user?: unknown;
+    }
   }
 }
+
+export {};

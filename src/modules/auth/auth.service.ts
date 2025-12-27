@@ -13,6 +13,7 @@ import { AuthProvider, User } from '@prisma/client';
 import { UserService } from '@modules/user/user.service';
 import { SessionUser } from '@common/types/session-user.type';
 import { AuthDto, SignUpDto, SocialSignInDto } from './dto/auth.dto';
+import { GoogleProfile } from './strategies/google.strategy';
 
 @Injectable()
 export class AuthService {
@@ -68,9 +69,8 @@ export class AuthService {
 
   public async socialSignIn(req: Request, dto: SocialSignInDto) {
     if (
-      ![AuthProvider.GOOGLE, AuthProvider.APPLE, AuthProvider.LOCAL].includes(
-        dto.provider,
-      )
+      dto.provider !== AuthProvider.GOOGLE &&
+      dto.provider !== AuthProvider.APPLE
     ) {
       throw new UnauthorizedException('Unsupported provider');
     }
@@ -89,6 +89,33 @@ export class AuthService {
           avatarUrl: dto.avatarUrl,
           provider: dto.provider,
           providerId: dto.providerId,
+        });
+
+    const sessionUser = this.toSessionUser(user);
+    req.session.user = sessionUser;
+    await this.saveSession(req);
+    return sessionUser;
+  }
+
+  public async googleSignIn(req: Request, profile: GoogleProfile) {
+    if (!profile?.providerId || !profile?.email) {
+      throw new UnauthorizedException('Invalid Google profile');
+    }
+
+    const existingByProvider = await this.userService.findUserByProvider(
+      AuthProvider.GOOGLE,
+      profile.providerId,
+    );
+
+    const user = existingByProvider
+      ? existingByProvider
+      : await this.userService.createUserFromOAuth({
+          email: profile.email,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          avatarUrl: profile.avatarUrl,
+          provider: AuthProvider.GOOGLE,
+          providerId: profile.providerId,
         });
 
     const sessionUser = this.toSessionUser(user);

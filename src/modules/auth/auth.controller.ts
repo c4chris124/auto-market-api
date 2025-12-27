@@ -7,16 +7,22 @@ import {
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 
 import type { Request } from 'express';
 
 import { AuthService } from './auth.service';
 import { AuthDto, SignUpDto, SocialSignInDto } from './dto/auth.dto';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { GoogleProfile } from './strategies/google.strategy';
+
+type GoogleAuthRequest = Request & { user: GoogleProfile };
 
 @ApiTags('Auth')
 @ApiCookieAuth()
@@ -48,6 +54,27 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   socialSignIn(@Req() req: Request, @Body() dto: SocialSignInDto) {
     return this.authService.socialSignIn(req, dto);
+  }
+
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Start Google OAuth flow' })
+  googleAuth() {
+    return { message: 'Redirecting to Google' };
+  }
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  googleCallback(@Req() req: GoogleAuthRequest) {
+    return this.authService.googleSignIn(req, req.user);
+  }
+
+  @Get('google/redirect')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Google OAuth redirect (alias)' })
+  googleRedirect(@Req() req: GoogleAuthRequest) {
+    return this.authService.googleSignIn(req, req.user);
   }
 
   @Post('sign-out')

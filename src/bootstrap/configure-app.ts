@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { INestApplication } from '@nestjs/common';
 import {
   configureCors,
+  configurePassport,
   configureSession,
   configureSwagger,
   configureValidation,
@@ -17,5 +18,6 @@ export const configureApp = (
   configureVersioning(app);
   configureSwagger(app, configService);
   configureSession(app, configService);
+  configurePassport(app);
   app.enableShutdownHooks();
 };
