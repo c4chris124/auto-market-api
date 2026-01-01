@@ -103,3 +103,12 @@ export class SocialSignInDto {
   @IsUrl()
   avatarUrl?: string;
 }
+
+export class EmailLookupDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'The email to identify an existing account',
+  })
+  @IsEmail()
+  email: string;
+}

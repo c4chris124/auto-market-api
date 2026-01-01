@@ -124,6 +124,22 @@ export class AuthService {
     return sessionUser;
   }
 
+  public async identifyAccount(email: string) {
+    const user = await this.userService.findUserByEmail(email);
+    if (!user) {
+      return { exists: false };
+    }
+
+    return {
+      exists: true,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatarUrl: user.avatarUrl,
+      authProvider: user.authProvider ?? AuthProvider.LOCAL,
+    };
+  }
+
   private async validateUser(email: string, password: string) {
     const user = await this.userService.findUserByEmailForAuth(email);
     if (!user) {

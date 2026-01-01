@@ -20,7 +20,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 
 import { AuthService } from './auth.service';
-import { AuthDto, SignUpDto, SocialSignInDto } from './dto/auth.dto';
+import { AuthDto, EmailLookupDto, SignUpDto, SocialSignInDto } from './dto/auth.dto';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { GoogleProfile } from './strategies/google.strategy';
 
@@ -65,6 +65,14 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   socialSignIn(@Req() req: Request, @Body() dto: SocialSignInDto) {
     return this.authService.socialSignIn(req, dto);
+  }
+
+  @Post('identify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Identify account by email' })
+  @ApiResponse({ status: 200, description: 'Account lookup response' })
+  identifyAccount(@Body() dto: EmailLookupDto) {
+    return this.authService.identifyAccount(dto.email);
   }
 
   @Get('google')
