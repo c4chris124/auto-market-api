@@ -20,9 +20,14 @@ import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 
 import { AuthService } from './auth.service';
-import { AuthDto, EmailLookupDto, SignUpDto, SocialSignInDto } from './dto/auth.dto';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { GoogleProfile } from './strategies/google.strategy';
+import {
+  AuthDto,
+  EmailLookupDto,
+  SignUpDto,
+  SocialSignInDto,
+} from './dto/auth.dto';
 
 type GoogleAuthRequest = Request & { user: GoogleProfile };
 
