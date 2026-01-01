@@ -12,10 +12,12 @@ import {
   HttpStatus,
   Post,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 
 import { AuthService } from './auth.service';
 import { AuthDto, SignUpDto, SocialSignInDto } from './dto/auth.dto';
@@ -28,7 +30,16 @@ type GoogleAuthRequest = Request & { user: GoogleProfile };
 @ApiCookieAuth()
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  private getFrontendRedirectUrl(): string {
+    return (
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173'
+    );
+  }
 
   @Post('sign-in')
   @HttpCode(HttpStatus.OK)
@@ -66,15 +77,17 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Google OAuth callback' })
-  googleCallback(@Req() req: GoogleAuthRequest) {
-    return this.authService.googleSignIn(req, req.user);
+  async googleCallback(@Req() req: GoogleAuthRequest, @Res() res: Response) {
+    await this.authService.googleSignIn(req, req.user);
+    return res.redirect(this.getFrontendRedirectUrl());
   }
 
   @Get('google/redirect')
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Google OAuth redirect (alias)' })
-  googleRedirect(@Req() req: GoogleAuthRequest) {
-    return this.authService.googleSignIn(req, req.user);
+  async googleRedirect(@Req() req: GoogleAuthRequest, @Res() res: Response) {
+    await this.authService.googleSignIn(req, req.user);
+    return res.redirect(this.getFrontendRedirectUrl());
   }
 
   @Post('sign-out')
