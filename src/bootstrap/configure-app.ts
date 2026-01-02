@@ -1,5 +1,8 @@
 import { ConfigService } from '@nestjs/config';
 import { INestApplication } from '@nestjs/common';
+
+import morgan from 'morgan';
+
 import {
   configureCors,
   configurePassport,
@@ -19,5 +22,6 @@ export const configureApp = (
   configureSwagger(app, configService);
   configureSession(app, configService);
   configurePassport(app);
+  app.use(morgan('dev'));
   app.enableShutdownHooks();
 };
